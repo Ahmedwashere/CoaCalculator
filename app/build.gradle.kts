@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.coacalculator"
-        minSdk = 24
+        minSdk = 26 // Changed the minimum SDK from 24 to 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
