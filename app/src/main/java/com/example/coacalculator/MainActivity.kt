@@ -7,7 +7,10 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +22,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -31,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,14 +60,77 @@ class MainActivity : ComponentActivity() {
             Column {
                 Header()
                 UsersFullNameInputBoxAndOutput()
-                SemesterSelector()
             }
         }
     }
 }
 
+/**
+ * I need some time to digest this as it is a lot.
+ * What I do know is that we encapsulate the logic in a box.
+ * We need a row to hold our selected option.
+ * After the row, we concern ourselves with our DropDownMenu logic.
+ * A DropDown meny has two inputs (expanded and on Dismiss Request)
+ * Expanded should take a state
+ * OnDismissRequest should change that state.
+ * Within the DropDownMenu we use a consumer that prints out a DropDownMenuItem
+ * To the app. We also implement the onClick logic for these items as well.
+ */
+
 @Composable
-fun SemesterSelector() {
+fun DropDownMenuDemos(menuItems: List<String>) {
+
+    val isDropDownExpanded = remember {
+        mutableStateOf(false)
+    }
+
+    val selectedOption = remember {
+        mutableStateOf(0)
+    }
+
+    Column(
+        modifier = Modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+
+        Card(border = BorderStroke(width = 1.dp, color = Color.Black)) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(8.dp).clickable {
+                    isDropDownExpanded.value = true
+                }
+            ) {
+                Text(text = menuItems[selectedOption.value])
+                Image(
+                    painter = painterResource(id = R.drawable.dropdown_icon),
+                    contentDescription = "dropdown icon"
+                )
+            }
+            DropdownMenu(
+                expanded = isDropDownExpanded.value,
+                onDismissRequest = { isDropDownExpanded.value = false }) {
+                menuItems.forEachIndexed { index, info ->
+                    DropdownMenuItem(text = { Text(info) }, onClick = {
+                        isDropDownExpanded.value = false
+                        selectedOption.value = index })
+                }
+
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DropDownMenuDemoPreview() {
+    DropDownMenuDemos(menuItems = listOf("Fall & Spring", "Fall", "Spring", "Summer"))
+}
+
+
+@Composable
+fun SemesterSelectorRadioButtons() {
     val semesters = listOf("Both Fall and Spring", "Fall", "Spring", "Summer")
     val (selectedSemester, onSemesterSelected) = remember { mutableStateOf(semesters[0]) }
 
@@ -74,8 +143,8 @@ fun SemesterSelector() {
                         .fillMaxWidth()
                         .padding(4.dp),
                     shape = RoundedCornerShape(0.dp),
-                    )
-                 {
+                )
+                {
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -104,7 +173,7 @@ fun SemesterSelector() {
 @Preview(showBackground = true)
 @Composable
 fun SemesterSelectorPreview() {
-    SemesterSelector()
+    SemesterSelectorRadioButtons()
 }
 
 @Composable
