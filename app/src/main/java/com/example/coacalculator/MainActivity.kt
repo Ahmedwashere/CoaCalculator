@@ -8,15 +8,26 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,17 +45,66 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Header()
+            Column {
+                Header()
+                UsersFullNameInputBoxAndOutput()
+            }
         }
     }
+}
+
+@Composable
+fun UsersFullNameInputBoxAndOutput() {
+    var text by remember { mutableStateOf("") }
+
+    var dynamicTextOutput by remember { mutableStateOf("Waiting for text input...") }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text("Full Name") },
+                modifier = Modifier.padding(8.dp),
+            )
+            Button(onClick = {
+                dynamicTextOutput =
+                    if (text.isNotBlank()) "Welcome to the XULA cost of attendance calculator $text"
+                    else "Please provide text as input."
+            },
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Text("Submit")
+            }
+        }
+
+        Text(
+            text = dynamicTextOutput,
+            modifier = Modifier.padding(8.dp),
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Preview
+@Composable
+fun UserFullNameInputBoxAndOutputPreview(){
+    UsersFullNameInputBoxAndOutput()
 }
 
 /**
  * First function I've made in Kotlin that actually uses streams!!!!
  * I use a stream to capitalize the first letter of each word. using replaceFirstChar
  *
- * I even used LocalDate which I used during my internship, but that wasn't good enough.
- * I used something called TimeSource instead.
+ * I even used LocalDate which I used during my internship
  *
  * What is interesting is how LocalDate is a Java class but it is usable by Kotlin.
  * I know that both languages are interoperable but never tried using more specific Java
@@ -132,8 +192,13 @@ fun StudentWithHighestGpaText(size: Int = 3) {
     }
 
     Column {
-        Text(text= "The list of students is:", style = MaterialTheme.typography.titleSmall)
-        randomStudentsList.forEach {student -> Text(student.toString(), modifier = Modifier.padding(8.dp))}
+        Text(text = "The list of students is:", style = MaterialTheme.typography.titleSmall)
+        randomStudentsList.forEach { student ->
+            Text(
+                student.toString(),
+                modifier = Modifier.padding(8.dp)
+            )
+        }
         Text(
             "The student object with the highest GPA is: ${
                 if (studentWithHighestGPA.isPresent)
