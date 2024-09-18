@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -29,7 +31,9 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -56,12 +60,146 @@ const val LOG_TAG = "MAD"
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Header()
                 UsersFullNameInputBoxAndOutput()
+
+                /** Mutable State Values that will need to change as they get passed through
+                 * the composables to send them into other composables.
+                 *
+                 * When you send in the state into a composable and modify it,
+                 * you can use the new state to modify the UI*/
+
+                // Semesters
+                val semesters = listOf("Fall and Spring", "Fall", "Spring", "Summer")
+                val (selectedSemester, onSelectedSemester) = remember { mutableStateOf(semesters[0]) }
+
+                // Living Situations
+                val livingSituations =
+                    listOf("Living on campus", "Living off campus", "Living with parents")
+                val (selectedSituation, onSelectedSituation) = remember {
+                    mutableStateOf(
+                        livingSituations[0]
+                    )
+                }
+
+                // Levels of Study
+                val levels = listOf(
+                    "Doctor of Pharmacy",
+                    "Masters in Pharmacy Science",
+                    "Undergraduate",
+                    "Graduate",
+                    "Doctor of Education",
+                    "Physician Assistant",
+                )
+                val level = remember { mutableIntStateOf(0) }
+
+                RadioButtonsSelector(
+                    category = "Semesters",
+                    values = semesters,
+                    selectedValue = selectedSemester,
+                    onSelected = onSelectedSemester
+                )
+                RadioButtonsSelector(
+                    category = "Living Situation",
+                    values = livingSituations,
+                    selectedValue = selectedSituation,
+                    onSelected = onSelectedSituation
+                )
+                Row(
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    DropDownMenuDemos(
+                        category = "Level",
+                        menuItems = levels,
+                        level,
+                    )
+                }
+                EstimatedCostOfAttendance(
+                    semester = selectedSemester,
+                    situation = selectedSituation,
+                    level = levels[level.intValue]
+                )
             }
         }
+    }
+}
+
+fun priceMapping(level: String, semester: String, livingSituation: String): String {
+    val semesters = mapOf(
+        "Fall and Spring" to 1.0,
+        "Fall" to 0.5,
+        "Spring" to 0.5,
+        "Summer" to 0.3
+    )
+
+    val livingSituations = mapOf(
+        "Living on campus" to 10_439,
+        "Living off campus" to 16_115,
+        "Living with parents" to 4_196
+    )
+
+    val levels = mapOf(
+        "Doctor of Pharmacy" to 39_759,
+        "Masters in Pharmacy Science" to 7_944,
+        "Undergraduate" to 25_829,
+        "Graduate" to 3_120,
+        "Doctor of Education" to 15_276,
+        "Physician Assistant" to 27_142
+    )
+
+    val levelCost = levels[level] ?: 0
+    val semesterCost = semesters[semester] ?: 1.0
+    val situationCost = livingSituations[livingSituation] ?: 0
+    return "$ ${"%,d".format((levelCost * semesterCost).toInt() + situationCost)}"
+}
+
+@Composable
+fun EstimatedCostOfAttendance(
+    semester: String,
+    situation: String,
+    level: String
+) {
+
+    val costOfAttendance = remember { mutableStateOf("$ ${"__,___"}") }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Button(onClick = {
+            costOfAttendance.value =
+                priceMapping(level = level, semester = semester, livingSituation = situation)
+        }) {
+            Text("Submit")
+        }
+
+        Text(
+            "Estimated Cost Of Attendance: ",
+            textAlign = TextAlign.Justify,
+            modifier = Modifier.padding(8.dp),
+            fontWeight = FontWeight.Medium,
+            fontSize = 24.sp
+        )
+
+        Text(
+            text = costOfAttendance.value,
+            textAlign = TextAlign.Justify,
+            modifier = Modifier.padding(8.dp),
+            fontWeight = FontWeight.Light,
+            fontSize = 24.sp
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EstimatedCostOfAttendancePreview() {
+    Column() {
+        EstimatedCostOfAttendance("random semester", "some living situation", "SomeTypathing")
     }
 }
 
@@ -78,31 +216,32 @@ class MainActivity : ComponentActivity() {
  */
 
 @Composable
-fun DropDownMenuDemos(menuItems: List<String>) {
+fun DropDownMenuDemos(
+    category: String, menuItems: List<String>,
+    selectedOptionIndex: MutableIntState
+) {
 
     val isDropDownExpanded = remember {
         mutableStateOf(false)
     }
 
-    val selectedOption = remember {
-        mutableStateOf(0)
-    }
+    Column(modifier = Modifier.padding(start = 16.dp)) {
+        Text(text = category, fontSize = 24.sp, fontWeight = FontWeight.Medium)
 
-    Column(
-        modifier = Modifier.padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-
-        Card(border = BorderStroke(width = 1.dp, color = Color.Black)) {
+        Card(
+            border = BorderStroke(width = 1.dp, color = Color.Black),
+            modifier = Modifier.padding(8.dp)
+        ) {
             Row(
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(8.dp).clickable {
-                    isDropDownExpanded.value = true
-                }
+                modifier = Modifier
+                    .padding(8.dp)
+                    .clickable {
+                        isDropDownExpanded.value = true
+                    }
             ) {
-                Text(text = menuItems[selectedOption.value])
+                Text(text = menuItems[selectedOptionIndex.intValue])
                 Image(
                     painter = painterResource(id = R.drawable.dropdown_icon),
                     contentDescription = "dropdown icon"
@@ -114,7 +253,8 @@ fun DropDownMenuDemos(menuItems: List<String>) {
                 menuItems.forEachIndexed { index, info ->
                     DropdownMenuItem(text = { Text(info) }, onClick = {
                         isDropDownExpanded.value = false
-                        selectedOption.value = index })
+                        selectedOptionIndex.intValue = index
+                    })
                 }
 
             }
@@ -125,19 +265,26 @@ fun DropDownMenuDemos(menuItems: List<String>) {
 @Preview(showBackground = true)
 @Composable
 fun DropDownMenuDemoPreview() {
-    DropDownMenuDemos(menuItems = listOf("Fall & Spring", "Fall", "Spring", "Summer"))
+    DropDownMenuDemos(
+        category = "Semesters",
+        menuItems = listOf("Fall & Spring", "Fall", "Spring", "Summer"),
+        remember {
+            mutableIntStateOf(0)
+        }
+    )
 }
 
 
 @Composable
-fun SemesterSelectorRadioButtons() {
-    val semesters = listOf("Both Fall and Spring", "Fall", "Spring", "Summer")
-    val (selectedSemester, onSemesterSelected) = remember { mutableStateOf(semesters[0]) }
+fun RadioButtonsSelector(
+    category: String, values: List<String>, selectedValue: String,
+    onSelected: (String) -> Unit
+) {
 
     Column(Modifier.padding(16.dp)) {
-        Text(text = "Semesters", fontSize = 24.sp, fontWeight = FontWeight.Medium)
+        Text(text = category, fontSize = 24.sp, fontWeight = FontWeight.Medium)
         Column(modifier = Modifier.selectableGroup()) {
-            semesters.forEach { text ->
+            values.forEach { text ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -150,14 +297,14 @@ fun SemesterSelectorRadioButtons() {
                             .fillMaxWidth()
                             .height(45.dp)
                             .selectable(
-                                selected = (text == selectedSemester),
-                                onClick = { onSemesterSelected(text) },
+                                selected = (text == selectedValue),
+                                onClick = { onSelected(text) },
                                 role = Role.RadioButton
                             )
                             .padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(selected = (text == selectedSemester), onClick = null)
+                        RadioButton(selected = (text == selectedValue), onClick = null)
                         Text(
                             text = text, modifier = Modifier.padding(start = 16.dp),
                             style = MaterialTheme.typography.bodyLarge,
@@ -173,7 +320,16 @@ fun SemesterSelectorRadioButtons() {
 @Preview(showBackground = true)
 @Composable
 fun SemesterSelectorPreview() {
-    SemesterSelectorRadioButtons()
+    val values = listOf("Fall and Spring", "Fall", "Spring", "Summer")
+    val (selectedOption, onSelect) = remember {
+        mutableStateOf(values[0])
+    }
+    RadioButtonsSelector(
+        category = "Semesters",
+        values = values,
+        selectedValue = selectedOption,
+        onSelected = onSelect
+    )
 }
 
 @Composable
@@ -237,7 +393,7 @@ fun UserFullNameInputBoxAndOutputPreview() {
 @Composable
 fun nameAndAge(name: String, date: String): String {
     val titleCaseString = name.split(" ").stream().asSequence()
-        .map { it.lowercase().replaceFirstChar { it.titlecase() } }.joinToString(" ")
+        .map { it -> it.lowercase().replaceFirstChar { it.titlecase() } }.joinToString(" ")
     val dateReceived = parse(date)
     val year = LocalDate.now().minusDays(dateReceived.dayOfMonth.toLong())
         .minusMonths(dateReceived.monthValue.toLong()).minusYears(dateReceived.year.toLong()).year
@@ -262,7 +418,7 @@ fun Header(modifier: Modifier = Modifier) {
 
         Text(
             text = nameAndAge(name = "xAVier uNiversity of lOuisiana", date = "1925-10-06"),
-            color = Color.Black,
+            color = Color.White,
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 40.dp, top = 40.dp, end = 40.dp, bottom = 5.dp),
             fontSize = 15.sp,
@@ -270,7 +426,7 @@ fun Header(modifier: Modifier = Modifier) {
         )
         Text(
             "Managing Costs",
-            color = Color.Black,
+            color = Color.White,
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(start = 40.dp, top = 0.dp, end = 40.dp, bottom = 0.dp)
         )
@@ -278,7 +434,8 @@ fun Header(modifier: Modifier = Modifier) {
         Text(
             "Cost & Tuition Rates",
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 40.dp, top = 0.dp, end = 40.dp, bottom = 40.dp)
+            modifier = Modifier.padding(start = 40.dp, top = 0.dp, end = 40.dp, bottom = 40.dp),
+            color = Color.White,
         )
     }
 }
